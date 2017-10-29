@@ -10,7 +10,7 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
-func Srm() {
+func Srn() {
 	rand.Seed(time.Now().UnixNano())
 
 	v := make([]float64, 100000)
