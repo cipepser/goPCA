@@ -105,7 +105,7 @@ func main() {
 	var pc stat.PC
 	ok := pc.PrincipalComponents(y, nil)
 	if !ok {
-		return
+		log.Fatal("PCA fails")
 	}
 
 	k := 2
