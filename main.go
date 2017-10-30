@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"time"
 
+	"gonum.org/v1/gonum/stat"
+
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
@@ -79,18 +81,55 @@ func MultiNorm(u *mat.VecDense, S *mat.SymDense) (*mat.VecDense, error) {
 }
 
 func main() {
+
+	// iris is a truncated sample of the Fisher's Iris dataset.
+	// n := 10
+	// d := 4
+	// iris := mat.NewDense(n, d, []float64{
+	// 	5.1, 3.5, 1.4, 0.2,
+	// 	4.9, 3.0, 1.4, 0.2,
+	// 	4.7, 3.2, 1.3, 0.2,
+	// 	4.6, 3.1, 1.5, 0.2,
+	// 	5.0, 3.6, 1.4, 0.2,
+	// 	5.4, 3.9, 1.7, 0.4,
+	// 	4.6, 3.4, 1.4, 0.3,
+	// 	5.0, 3.4, 1.5, 0.2,
+	// 	4.4, 2.9, 1.4, 0.2,
+	// 	4.9, 3.1, 1.5, 0.1,
+	// })
+
+	// Calculate the principal component direction vectors
+	// and variances.
+
 	N := 10000
-	x1 := make([]float64, N)
-	x2 := make([]float64, N)
+	x := make([]float64, 2*N)
+	d := 2
+	// x2 := make([]float64, N)
 
 	for i := 0; i < N; i++ {
-		y, _ := MultiNorm(mat.NewVecDense(2, []float64{0.0, 0.0}),
-			mat.NewSymDense(2, []float64{3.0, 0.5, 0.5, 1.0}),
+		y, _ := MultiNorm(mat.NewVecDense(d, []float64{0.0, 0.0}),
+			mat.NewSymDense(d, []float64{3.0, 0.5, 0.5, 1.0}),
 		)
 
-		x1[i] = y.At(0, 0)
-		x2[i] = y.At(1, 0)
+		x[i] = y.At(0, 0)
+		x[i+1] = y.At(1, 0)
 	}
 
-	MyScatter(x1, x2)
+	X := mat.NewDense(N, d, x)
+
+	var pc stat.PC
+	ok := pc.PrincipalComponents(X, nil)
+	if !ok {
+		return
+	}
+	// fmt.Printf("variances = %.4f\n\n", pc.VarsTo(nil))
+
+	// Project the data onto the first 2 principal components.
+	k := 2
+	var proj mat.Dense
+	proj.Mul(X, pc.VectorsTo(nil).Slice(0, d, 0, k))
+
+	fmt.Printf("proj = %.4f", mat.Formatted(&proj, mat.Prefix("       ")))
+
+	// MyScatter(x1, x2)
 }
