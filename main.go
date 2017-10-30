@@ -18,7 +18,7 @@ import (
 
 // MyScatter is a wrapper of Scatter of package plotter
 // with slice of float64 x and y.
-func MyScatter(x, y []float64) {
+func MyScatter(x, y []float64, file string) {
 	if len(x) != len(y) {
 		log.Fatal("length of x and y have to same.")
 	}
@@ -43,7 +43,6 @@ func MyScatter(x, y []float64) {
 
 	p.Add(s)
 
-	file := "img.png"
 	if err = p.Save(10*vg.Inch, 6*vg.Inch, file); err != nil {
 		panic(err)
 	}
@@ -81,55 +80,41 @@ func MultiNorm(u *mat.VecDense, S *mat.SymDense) (*mat.VecDense, error) {
 }
 
 func main() {
-
-	// iris is a truncated sample of the Fisher's Iris dataset.
-	// n := 10
-	// d := 4
-	// iris := mat.NewDense(n, d, []float64{
-	// 	5.1, 3.5, 1.4, 0.2,
-	// 	4.9, 3.0, 1.4, 0.2,
-	// 	4.7, 3.2, 1.3, 0.2,
-	// 	4.6, 3.1, 1.5, 0.2,
-	// 	5.0, 3.6, 1.4, 0.2,
-	// 	5.4, 3.9, 1.7, 0.4,
-	// 	4.6, 3.4, 1.4, 0.3,
-	// 	5.0, 3.4, 1.5, 0.2,
-	// 	4.4, 2.9, 1.4, 0.2,
-	// 	4.9, 3.1, 1.5, 0.1,
-	// })
-
-	// Calculate the principal component direction vectors
-	// and variances.
-
+	// generate sample data
 	N := 10000
-	x := make([]float64, 2*N)
 	d := 2
-	// x2 := make([]float64, N)
-
+	y := mat.NewDense(N, d, nil)
 	for i := 0; i < N; i++ {
-		y, _ := MultiNorm(mat.NewVecDense(d, []float64{0.0, 0.0}),
+		rnd, _ := MultiNorm(mat.NewVecDense(d, []float64{0.0, 0.0}),
 			mat.NewSymDense(d, []float64{3.0, 0.5, 0.5, 1.0}),
 		)
 
-		x[i] = y.At(0, 0)
-		x[i+1] = y.At(1, 0)
+		y.SetRow(i, mat.Col(nil, 0, rnd))
 	}
 
-	X := mat.NewDense(N, d, x)
+	x1 := make([]float64, N)
+	x2 := make([]float64, N)
 
+	for i := 0; i < N; i++ {
+		x1[i] = y.At(i, 0)
+		x2[i] = y.At(i, 1)
+	}
+	MyScatter(x1, x2, "before.png")
+
+	// PCA
 	var pc stat.PC
-	ok := pc.PrincipalComponents(X, nil)
+	ok := pc.PrincipalComponents(y, nil)
 	if !ok {
 		return
 	}
-	// fmt.Printf("variances = %.4f\n\n", pc.VarsTo(nil))
 
-	// Project the data onto the first 2 principal components.
 	k := 2
 	var proj mat.Dense
-	proj.Mul(X, pc.VectorsTo(nil).Slice(0, d, 0, k))
+	proj.Mul(y, pc.VectorsTo(nil).Slice(0, d, 0, k))
 
-	fmt.Printf("proj = %.4f", mat.Formatted(&proj, mat.Prefix("       ")))
-
-	// MyScatter(x1, x2)
+	for i := 0; i < N; i++ {
+		x1[i] = proj.At(i, 0)
+		x2[i] = proj.At(i, 1)
+	}
+	MyScatter(x1, x2, "after.png")
 }
